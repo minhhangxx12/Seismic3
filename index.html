@@ -1,23 +1,9 @@
-// Add click event to initialize audio early
-        document.addEventListener('click', function initAudioOnClick() {
-            if (!audioInitialized) {
-                initAudioContext();
-                resumeAudioContext();
-            }
-        }, { once: true });
-        
-        // Add keypress event to initialize audio early
-        document.addEventListener('keydown', function initAudioOnKey() {
-            if (!audioInitialized) {
-                initAudioContext();
-                resumeAudioContext();
-            }
-        }, { once: true });<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seismic Adventure</title>
+    <title>Seismic Adventure 2</title>
     <style>
         body {
             margin: 0;
@@ -230,82 +216,83 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Simple Audio System
-        let audioEnabled = false;
-        let audioContext = null;
+        // Audio System
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Try to initialize audio, but don't break the game if it fails
-        function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audioEnabled = true;
-            } catch (e) {
-                console.log('Audio not available, continuing without sound');
-                audioEnabled = false;
-            }
-        }
-        
-        // Simple sound function that won't break the game
-        function playSound(frequency, duration, type = 'sine', volume = 0.3) {
-            if (!audioEnabled || !audioContext) return;
+        function createSound(frequency, duration, type = 'sine', volume = 0.3) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
             
-            try {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-                oscillator.type = type;
-                
-                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + duration);
-            } catch (e) {
-                // Silently fail if audio doesn't work
-            }
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
         }
         
-        // Sound effect functions (safe versions)
         function playFireballSound() {
-            playSound(300, 0.2, 'sawtooth', 0.3);
+            // Create a fiery "whoosh" sound
+            createSound(200, 0.1, 'sawtooth', 0.2);
+            setTimeout(() => createSound(150, 0.1, 'sawtooth', 0.1), 50);
         }
         
         function playGemSound() {
-            playSound(800, 0.3, 'sine', 0.4);
+            // Create a pleasant "ding" sound for gems
+            createSound(800, 0.2, 'sine', 0.3);
+            setTimeout(() => createSound(1000, 0.1, 'sine', 0.2), 100);
         }
         
         function playPowerUpSound() {
-            playSound(523, 0.2, 'sine', 0.3);
-            setTimeout(() => playSound(659, 0.2, 'sine', 0.3), 150);
+            // Create an ascending magical sound for power-ups
+            createSound(400, 0.1, 'sine', 0.25);
+            setTimeout(() => createSound(600, 0.1, 'sine', 0.25), 100);
+            setTimeout(() => createSound(800, 0.1, 'sine', 0.25), 200);
         }
         
         function playShieldSound() {
-            playSound(400, 0.3, 'triangle', 0.4);
+            // Create a protective "shield activate" sound
+            createSound(300, 0.2, 'triangle', 0.3);
+            setTimeout(() => createSound(500, 0.15, 'triangle', 0.2), 100);
         }
         
         function playDoorOpenSound() {
-            playSound(523, 0.3, 'sine', 0.4);
-            setTimeout(() => playSound(784, 0.3, 'sine', 0.4), 300);
+            // Create a triumphant "level complete" sound
+            createSound(523, 0.2, 'sine', 0.3); // C5
+            setTimeout(() => createSound(659, 0.2, 'sine', 0.3), 200); // E5
+            setTimeout(() => createSound(784, 0.2, 'sine', 0.3), 400); // G5
+            setTimeout(() => createSound(1047, 0.3, 'sine', 0.4), 600); // C6
         }
         
         function playJumpSound() {
-            playSound(400, 0.15, 'square', 0.2);
+            // Create a quick "boing" sound for jumping
+            createSound(300, 0.1, 'square', 0.2);
+            setTimeout(() => createSound(400, 0.05, 'square', 0.1), 50);
         }
         
         function playHitSound() {
-            playSound(150, 0.3, 'sawtooth', 0.3);
+            // Create a damage sound
+            createSound(150, 0.2, 'sawtooth', 0.3);
+            setTimeout(() => createSound(100, 0.1, 'sawtooth', 0.2), 100);
         }
         
         function playEnemyDefeatSound() {
-            playSound(300, 0.15, 'sawtooth', 0.3);
+            // Create an enemy defeat sound
+            createSound(200, 0.1, 'sawtooth', 0.25);
+            setTimeout(() => createSound(150, 0.1, 'sawtooth', 0.2), 80);
+            setTimeout(() => createSound(100, 0.1, 'sawtooth', 0.15), 160);
+        }
+        
+        // Initialize audio context on first user interaction
+        function initAudio() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         }
         
         // Game State
@@ -366,11 +353,9 @@
         document.getElementById('menu2Btn').addEventListener('click', goToMenu);
         
         function startGame() {
-            // Try to initialize audio, but don't let it break the game
-            initAudio();
-            
             gameState = 'playing';
             document.getElementById('menuScreen').style.display = 'none';
+            initAudio();
             resetGame();
         }
         
@@ -620,7 +605,10 @@
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (gameState === 'playing') {
-                if (e.code === 'KeyF') shootFireball();
+                if (e.code === 'KeyF') {
+                    shootFireball();
+                    playFireballSound();
+                }
             }
         });
         
@@ -638,7 +626,7 @@
             leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls.left = true; });
             rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls.right = true; });
             jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls.jump = true; });
-            fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootFireball(); });
+            fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootFireball(); playFireballSound(); });
             
             leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); touchControls.left = false; });
             rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); touchControls.right = false; });
@@ -647,7 +635,7 @@
             leftBtn.addEventListener('mousedown', () => touchControls.left = true);
             rightBtn.addEventListener('mousedown', () => touchControls.right = true);
             jumpBtn.addEventListener('mousedown', () => touchControls.jump = true);
-            fireBtn.addEventListener('mousedown', () => shootFireball());
+            fireBtn.addEventListener('mousedown', () => { shootFireball(); playFireballSound(); });
             
             leftBtn.addEventListener('mouseup', () => touchControls.left = false);
             rightBtn.addEventListener('mouseup', () => touchControls.right = false);
@@ -698,8 +686,8 @@
             if (jump && player.onGround) {
                 player.velY = -player.jumpPower;
                 player.onGround = false;
-                playJumpSound(); // Play jump sound
                 createJumpParticles();
+                playJumpSound();
             }
             
             player.velY += 0.8;
@@ -751,7 +739,7 @@
                 const allPowerUpsCollected = powerUps.every(powerUp => powerUp.collected);
                 const allShieldsCollected = shields.every(shield => shield.collected);
                 if (allGemsCollected && allPowerUpsCollected && allShieldsCollected) {
-                    playDoorOpenSound(); // Play door open sound
+                    playDoorOpenSound();
                     levelComplete();
                 }
             }
@@ -782,7 +770,6 @@
                 });
             }
             
-            playFireballSound(); // Play fireball sound
             createFireParticles(player.x + player.width, player.y + player.height / 2);
         }
         
@@ -799,8 +786,8 @@
                 enemies.forEach((enemy, enemyIndex) => {
                     if (checkCollision(fireball, enemy)) {
                         enemies.splice(enemyIndex, 1);
-                        playEnemyDefeatSound(); // Play enemy defeat sound
                         createExplosionParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
+                        playEnemyDefeatSound();
                         return false;
                     }
                 });
@@ -808,8 +795,8 @@
                 flyingEnemies.forEach((enemy, enemyIndex) => {
                     if (checkCollision(fireball, enemy)) {
                         flyingEnemies.splice(enemyIndex, 1);
-                        playEnemyDefeatSound(); // Play enemy defeat sound
                         createExplosionParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
+                        playEnemyDefeatSound();
                         return false;
                     }
                 });
@@ -849,6 +836,7 @@
                 if (checkCollision(player, enemy) && player.invulnerable === 0) {
                     if (player.powerUp.active && player.powerUp.type === 'shield') {
                         createShieldBlockParticles(player.x + player.width/2, player.y + player.height/2);
+                        playShieldSound();
                     } else {
                         takeDamage();
                     }
@@ -893,6 +881,7 @@
                 if (checkCollision(player, enemy) && player.invulnerable === 0) {
                     if (player.powerUp.active && player.powerUp.type === 'shield') {
                         createShieldBlockParticles(player.x + player.width/2, player.y + player.height/2);
+                        playShieldSound();
                     } else {
                         takeDamage();
                     }
@@ -905,27 +894,27 @@
                 if (!gem.collected && checkCollision(player, {x: gem.x, y: gem.y, width: 20, height: 20})) {
                     gem.collected = true;
                     score++;
-                    playGemSound(); // Play gem collection sound
                     document.getElementById('score').textContent = score;
                     createGemParticles(gem.x, gem.y);
+                    playGemSound();
                 }
             });
             
             powerUps.forEach(powerUp => {
                 if (!powerUp.collected && checkCollision(player, powerUp)) {
                     powerUp.collected = true;
-                    playPowerUpSound(); // Play power-up sound
                     activatePowerUp(powerUp.type);
                     createPowerUpParticles(powerUp.x, powerUp.y);
+                    playPowerUpSound();
                 }
             });
             
             shields.forEach(shield => {
                 if (!shield.collected && checkCollision(player, shield)) {
                     shield.collected = true;
-                    playShieldSound(); // Play shield sound
                     activatePowerUp('shield');
                     createShieldParticles(shield.x, shield.y);
+                    playShieldSound();
                 }
             });
             
@@ -933,6 +922,7 @@
                 if (checkCollision(player, spike) && player.invulnerable === 0) {
                     if (player.powerUp.active && player.powerUp.type === 'shield') {
                         createShieldBlockParticles(player.x + player.width/2, player.y + player.height/2);
+                        playShieldSound();
                     } else {
                         takeDamage();
                     }
@@ -954,7 +944,7 @@
             
             player.health--;
             player.invulnerable = 120;
-            playHitSound(); // Play damage sound
+            playHitSound();
             
             const hearts = ['❤️❤️❤️❤️❤️', '❤️❤️❤️❤️🖤', '❤️❤️❤️🖤🖤', '❤️❤️🖤🖤🖤', '❤️🖤🖤🖤🖤', '🖤🖤🖤🖤🖤'];
             document.getElementById('health').textContent = hearts[5 - player.health];
