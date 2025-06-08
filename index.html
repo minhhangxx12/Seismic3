@@ -1,9 +1,23 @@
-<!DOCTYPE html>
+// Add click event to initialize audio early
+        document.addEventListener('click', function initAudioOnClick() {
+            if (!audioInitialized) {
+                initAudioContext();
+                resumeAudioContext();
+            }
+        }, { once: true });
+        
+        // Add keypress event to initialize audio early
+        document.addEventListener('keydown', function initAudioOnKey() {
+            if (!audioInitialized) {
+                initAudioContext();
+                resumeAudioContext();
+            }
+        }, { once: true });<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seismic Adventure 2</title>
+    <title>Seismic Adventure</title>
     <style>
         body {
             margin: 0;
@@ -216,40 +230,29 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Audio System - More robust implementation
+        // Simple Audio System
+        let audioEnabled = false;
         let audioContext = null;
-        let audioInitialized = false;
         
-        // Initialize audio context
-        function initAudioContext() {
+        // Try to initialize audio, but don't break the game if it fails
+        function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audioInitialized = true;
-                console.log('Audio initialized successfully');
+                audioEnabled = true;
             } catch (e) {
-                console.log('Web Audio API not supported');
-                audioInitialized = false;
+                console.log('Audio not available, continuing without sound');
+                audioEnabled = false;
             }
         }
         
-        // Resume audio context if suspended
-        function resumeAudioContext() {
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    console.log('Audio context resumed');
-                });
-            }
-        }
-        
-        // Create sound with error handling
+        // Simple sound function that won't break the game
         function playSound(frequency, duration, type = 'sine', volume = 0.3) {
-            if (!audioInitialized || !audioContext) {
-                console.log('Audio not initialized');
-                return;
-            }
+            if (!audioEnabled || !audioContext) return;
             
             try {
-                resumeAudioContext();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
                 
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -265,68 +268,44 @@
                 
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + duration);
-                
-                console.log(`Playing sound: ${frequency}Hz for ${duration}s`);
             } catch (e) {
-                console.log('Error playing sound:', e);
+                // Silently fail if audio doesn't work
             }
         }
         
-        // Sound effect functions
+        // Sound effect functions (safe versions)
         function playFireballSound() {
-            console.log('Fireball sound triggered');
-            playSound(300, 0.2, 'sawtooth', 0.4);
-            setTimeout(() => playSound(200, 0.15, 'sawtooth', 0.3), 100);
+            playSound(300, 0.2, 'sawtooth', 0.3);
         }
         
         function playGemSound() {
-            console.log('Gem sound triggered');
-            playSound(800, 0.3, 'sine', 0.5);
-            setTimeout(() => playSound(1200, 0.2, 'sine', 0.4), 150);
+            playSound(800, 0.3, 'sine', 0.4);
         }
         
         function playPowerUpSound() {
-            console.log('Power-up sound triggered');
-            playSound(523, 0.2, 'sine', 0.4); // C5
-            setTimeout(() => playSound(659, 0.2, 'sine', 0.4), 200); // E5
-            setTimeout(() => playSound(784, 0.2, 'sine', 0.4), 400); // G5
+            playSound(523, 0.2, 'sine', 0.3);
+            setTimeout(() => playSound(659, 0.2, 'sine', 0.3), 150);
         }
         
         function playShieldSound() {
-            console.log('Shield sound triggered');
-            playSound(400, 0.3, 'triangle', 0.5);
-            setTimeout(() => playSound(600, 0.2, 'triangle', 0.4), 150);
+            playSound(400, 0.3, 'triangle', 0.4);
         }
         
         function playDoorOpenSound() {
-            console.log('Door open sound triggered');
-            playSound(523, 0.3, 'sine', 0.5); // C5
-            setTimeout(() => playSound(659, 0.3, 'sine', 0.5), 300); // E5
-            setTimeout(() => playSound(784, 0.3, 'sine', 0.5), 600); // G5
-            setTimeout(() => playSound(1047, 0.5, 'sine', 0.6), 900); // C6
+            playSound(523, 0.3, 'sine', 0.4);
+            setTimeout(() => playSound(784, 0.3, 'sine', 0.4), 300);
         }
         
         function playJumpSound() {
-            console.log('Jump sound triggered');
-            playSound(400, 0.15, 'square', 0.3);
+            playSound(400, 0.15, 'square', 0.2);
         }
         
         function playHitSound() {
-            console.log('Hit sound triggered');
-            playSound(150, 0.3, 'sawtooth', 0.5);
+            playSound(150, 0.3, 'sawtooth', 0.3);
         }
         
         function playEnemyDefeatSound() {
-            console.log('Enemy defeat sound triggered');
-            playSound(300, 0.15, 'sawtooth', 0.4);
-            setTimeout(() => playSound(200, 0.15, 'sawtooth', 0.3), 100);
-            setTimeout(() => playSound(100, 0.15, 'sawtooth', 0.2), 200);
-        }
-        
-        // Test sound function
-        function testSound() {
-            console.log('Testing sound...');
-            playSound(440, 0.5, 'sine', 0.5);
+            playSound(300, 0.15, 'sawtooth', 0.3);
         }
         
         // Game State
@@ -387,7 +366,9 @@
         document.getElementById('menu2Btn').addEventListener('click', goToMenu);
         
         function startGame() {
-            initAudio(); // Initialize audio on user interaction
+            // Try to initialize audio, but don't let it break the game
+            initAudio();
+            
             gameState = 'playing';
             document.getElementById('menuScreen').style.display = 'none';
             resetGame();
